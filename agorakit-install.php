@@ -9,13 +9,18 @@ if (!isset($argv[1])) {
 } 
 
 
+function info($data)
+{
+    echo $data , PHP_EOL;
+}
+
 $client_name = $argv[1];
 
-echo 'Creating a site for ' . $client_name , PHP_EOL;
+info ('Creating a site for ' . $client_name);
 
 $url = $client_name . '.agorakit.org';
 
-echo 'Will be available on ' . $url , PHP_EOL;
+info ( 'Will be available on ' . $url );
 
 
 use GuzzleHttp\Client;
@@ -31,7 +36,7 @@ $client = new Client([
 
 
 /************ create website ****************/
-echo 'Creating site' , PHP_EOL;
+info ( 'Creating site' );
 
 $options = [
     'json' => [
@@ -49,12 +54,13 @@ $response = $client->post('v1/site/', $options);
 
 if ($response->getStatusCode() == 200)
 {
-    echo 'Site create successfuly' , PHP_EOL;
+    info ( 'Site create successfuly');
 }
 else
 {
-    echo 'Error creating site' , PHP_EOL;
-    echo $response->getBody();
+    info ( 'Error creating site');
+    info ( $response->getBody());
+    info ( $response->getStatusCode());
 }
 
 
@@ -72,19 +78,20 @@ $response = $client->post('v1/database/', $options);
 
 if ($response->getStatusCode() == 200)
 {
-    echo 'database created successfuly' , PHP_EOL;
+    info ('database created successfuly' );
 }
 else
 {
-    echo 'Error creating DB' , PHP_EOL;
-    echo $response->getBody();
+    info ('Error creating DB');
+    info ($response->getBody());
+    info ($response->getStatusCode());
 }
 
 
 
 /************** clone repository ***********/
-/*
-echo 'Cloning site' , PHP_EOL;
+
+info ('Cloning site');
 
 use phpseclib\Net\SSH2;
 
@@ -95,12 +102,12 @@ if (!$ssh->login($ssh_login, $ssh_password)) {
 
 $ssh->setTimeout(240);
 
-echo $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name);
-echo $ssh->exec('cd www/agorakit/' . $client_name . '; composer install');
-echo $ssh->exec('cd www/agorakit/' . $client_name . '; cp .env.example .env');
-echo $ssh->exec('cd www/agorakit/' . $client_name . '; php artisan key:generate');
+info ( $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name));
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install'));
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; cp .env.example .env'));
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; php artisan key:generate --force'));
 
-*/
+
 
 /**************** set correct config in .env ****************/
 
