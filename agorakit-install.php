@@ -1,12 +1,16 @@
 <?php
 
-include 'config.php';
+require 'config.php';
 
 require 'vendor/autoload.php';
 
-// $ad_api_key = 'cle_api_alwaysdata'
 
-$client_name = 'tousapied'; // change me !
+if (!isset($argv[1])) {
+    die ('Please choose a client name as argument' . PHP_EOL);
+} 
+
+
+$client_name = $argv[1];
 
 echo 'Creating a site for ' . $client_name , PHP_EOL;
 
@@ -14,14 +18,16 @@ $url = $client_name . '.agorakit.org';
 
 echo 'Will be available on ' . $url , PHP_EOL;
 
+
 use GuzzleHttp\Client;
 
 $client = new Client([
     // Base URI is used with relative requests
     'base_uri' => 'https://api.alwaysdata.com/',
     // You can set any number of default request options.
-    'timeout'  => 2.0,
+    'timeout'  => 10.0,
     'auth' => [$ad_api_key, ''],
+    'exceptions' => false,
 ]);
 
 
@@ -44,10 +50,11 @@ $response = $client->post('v1/site/', $options);
 
 if ($response->getStatusCode() == 200)
 {
-    echo 'site create successfuly' , PHP_EOL;
+    echo 'Site create successfuly' , PHP_EOL;
 }
 else
 {
+    echo 'Error creating site' , PHP_EOL;
     echo $response->getBody();
 }
 
@@ -66,10 +73,11 @@ $response = $client->post('v1/database/', $options);
 
 if ($response->getStatusCode() == 200)
 {
-    echo 'database create successfuly' , PHP_EOL;
+    echo 'database created successfuly' , PHP_EOL;
 }
 else
 {
+    echo 'Error creating DB' , PHP_EOL;
     echo $response->getBody();
 }
 
