@@ -4,6 +4,8 @@ require 'config.php';
 require 'vendor/autoload.php';
 
 
+/*** ensure we have client name */
+
 if (!isset($argv[1])) {
     die('Please choose a client name as argument' . PHP_EOL);
 }
@@ -15,6 +17,14 @@ function info($data)
 }
 
 $client_name = $argv[1];
+
+if (preg_match('/^[a-zA-Z]+[a-zA-Z0-9._]+$/', $client_name)) {
+    // Valid
+} else {
+    die('Please choose a VALID client name as argument' . PHP_EOL);
+}
+
+
 
 info('Creating a site for ' . $client_name);
 
@@ -36,7 +46,6 @@ $client = new Client([
 
 
 /************ create website ****************/
-info('Creating site');
 
 $options = [
     'json' => [
@@ -56,10 +65,11 @@ info('Creating site');
 info('Code received : ' . $response->getStatusCode());
 info($response->getBody());
 
-
+if ($response->getStatusCode() > 299) {
+    die();
+}
 
 /************ create database ****************/
-echo 'Creating DB', PHP_EOL;
 
 $options = [
     'json' => [
@@ -74,6 +84,9 @@ info('Creating DB');
 info('Code received : ' . $response->getStatusCode());
 info($response->getBody());
 
+if ($response->getStatusCode() > 299) {
+    die();
+}
 
 /************ create DB user */
 
@@ -92,10 +105,12 @@ function generatePassword($length = 8)
 
 
 $db_password = generatePassword(16);
+$db_username = substr('agorakit_' . $client_name, 0, 15);
+
 
 $options = [
     'json' => [
-        'name' => 'agorakit_' . $client_name,
+        'name' => $db_username,
         'type' => 'MYSQL',
         'password' => $db_password,
         'permissions' => ['agorakit_' . $client_name => 'FULL']
@@ -108,10 +123,33 @@ info('Creating DB USER');
 info('Code received : ' . $response->getStatusCode());
 info($response->getBody());
 
-
+if ($response->getStatusCode() > 299) {
+    die();
+}
 
 
 /* create cron job  */
+
+$options = [
+    'json' => [
+        'type' => 'TYPE_COMMAND',
+        'date_type' => 'FREQUENCY',
+        'argument' => 'php /home/agorakit/www/agorakit/' . $client_name . '/artisan schedule:run >/dev/null 2>&1',
+        'ssh_user' => '171704',
+        'frequency' => 5,
+        'frequency_period' => 'minute'
+    ]
+];
+
+$response = $client->post('v1/job/', $options);
+
+info('Creating Cron job');
+info('Code received : ' . $response->getStatusCode());
+info($response->getBody());
+
+if ($response->getStatusCode() > 299) {
+    die();
+}
 
 
 
@@ -132,7 +170,9 @@ info('Creating INBOX USER');
 info('Code received : ' . $response->getStatusCode());
 info($response->getBody());
 
-
+if ($response->getStatusCode() > 299) {
+    die();
+}
 
 
 
@@ -176,7 +216,7 @@ env('APP_LOG', 'daily');
 env('APP_DEFAULT_LOCALE', 'en');
 env('DB_HOST', 'mysql-agorakit.alwaysdata.net');
 env('DB_DATABASE', 'agorakit_' . $client_name);
-env('DB_USERNAME', 'agorakit_' . $client_name);
+env('DB_USERNAME', $db_username);
 env('DB_PASSWORD', $db_password);
 env('CACHE_DRIVER', 'file');
 env('SESSION_DRIVER', 'file');
@@ -212,7 +252,6 @@ info($ssh->exec('cd www/agorakit/' . $client_name . '; php artisan key:generate 
 info($ssh->exec('cd www/agorakit/' . $client_name . '; php artisan migrate --force'));
 
 
-/**************** setup cron jobs ******************/
-
+info($ssh->exec('cd www/agorakit/' . $client_name . '; php artisan storage:link'));
 
 
