@@ -5,22 +5,22 @@ require 'vendor/autoload.php';
 
 
 if (!isset($argv[1])) {
-    die ('Please choose a client name as argument' . PHP_EOL);
-} 
+    die('Please choose a client name as argument' . PHP_EOL);
+}
 
 
 function info($data)
 {
-    echo $data , PHP_EOL;
+    echo $data, PHP_EOL;
 }
 
 $client_name = $argv[1];
 
-info ('Creating a site for ' . $client_name);
+info('Creating a site for ' . $client_name);
 
 $url = $client_name . '.agorakit.org';
 
-info ( 'Will be available on ' . $url );
+info('Will be available on ' . $url);
 
 
 use GuzzleHttp\Client;
@@ -36,7 +36,7 @@ $client = new Client([
 
 
 /************ create website ****************/
-info ( 'Creating site' );
+info('Creating site');
 
 $options = [
     'json' => [
@@ -52,20 +52,14 @@ $options = [
 
 $response = $client->post('v1/site/', $options);
 
-if ($response->getStatusCode() == 200)
-{
-    info ( 'Site create successfuly');
-}
-else
-{
-    info ( 'Error creating site');
-    info ( $response->getBody());
-    info ( $response->getStatusCode());
-}
+info('Creating site');
+info('Code received : ' . $response->getStatusCode());
+info($response->getBody());
+
 
 
 /************ create database ****************/
-echo 'Creating DB' , PHP_EOL;
+echo 'Creating DB', PHP_EOL;
 
 $options = [
     'json' => [
@@ -76,22 +70,76 @@ $options = [
 
 $response = $client->post('v1/database/', $options);
 
-if ($response->getStatusCode() == 200)
+info('Creating DB');
+info('Code received : ' . $response->getStatusCode());
+info($response->getBody());
+
+
+/************ create DB user */
+
+function generatePassword($length = 8)
 {
-    info ('database created successfuly' );
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $count = mb_strlen($chars);
+
+    for ($i = 0, $result = ''; $i < $length; $i++) {
+        $index = rand(0, $count - 1);
+        $result .= mb_substr($chars, $index, 1);
+    }
+
+    return $result;
 }
-else
-{
-    info ('Error creating DB');
-    info ($response->getBody());
-    info ($response->getStatusCode());
-}
+
+
+$db_password = generatePassword(16);
+
+$options = [
+    'json' => [
+        'name' => 'agorakit_' . $client_name,
+        'type' => 'MYSQL',
+        'password' => $db_password,
+        'permissions' => ['agorakit_' . $client_name => 'FULL']
+    ]
+];
+
+$response = $client->post('v1/database/user/', $options);
+
+info('Creating DB USER');
+info('Code received : ' . $response->getStatusCode());
+info($response->getBody());
+
+
+
+
+/* create cron job  */
+
+
+
+/* create inbox */
+$inbox_password = generatePassword(16);
+
+$options = [
+    'json' => [
+        'domain' => '47759', // this is the id of agorakit.org
+        'name' => $client_name,
+        'password' => $inbox_password,
+    ]
+];
+
+$response = $client->post('v1/mailbox/', $options);
+
+info('Creating INBOX USER');
+info('Code received : ' . $response->getStatusCode());
+info($response->getBody());
+
+
+
 
 
 
 /************** clone repository ***********/
 
-info ('Cloning site');
+info('Cloning site');
 
 use phpseclib\Net\SSH2;
 
@@ -103,18 +151,68 @@ if (!$ssh->login($ssh_login, $ssh_password)) {
 $ssh->setTimeout(240);
 
 info ( $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name));
-info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install'));
-info ( $ssh->exec('cd www/agorakit/' . $client_name . '; cp .env.example .env'));
-info ( $ssh->exec('cd www/agorakit/' . $client_name . '; php artisan key:generate --force'));
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install --optimize-autoloader --no-dev'));
+
+
+/************* Handle .env file */
+
+info($ssh->exec('cd www/agorakit/' . $client_name . '; touch .env'));
+
+
+function env($name, $value)
+{
+    global $ssh;
+    global $client_name;
+    $ssh->exec('cd www/agorakit/' . $client_name . '; echo  ' . $name . '=' . $value . ' >> .env');
+}
+
+
+env('APP_ENV', 'production');
+env('APP_KEY', 'SomeRandomString');
+env('APP_DEBUG', 'false');
+env('APP_NAME', $client_name);
+env('APP_LOG', 'daily');
+
+env('APP_DEFAULT_LOCALE', 'en');
+env('DB_HOST', 'mysql-agorakit.alwaysdata.net');
+env('DB_DATABASE', 'agorakit_' . $client_name);
+env('DB_USERNAME', 'agorakit_' . $client_name);
+env('DB_PASSWORD', $db_password);
+env('CACHE_DRIVER', 'file');
+env('SESSION_DRIVER', 'file');
+env('QUEUE_DRIVER', 'sync');
+
+env('MAIL_DRIVER', 'smtp-agorakit.alwaysdata.net');
+env('MAIL_PORT', '25');
+
+env('MAIL_USERNAME', 'null');
+env('MAIL_PASSWORD', 'null');
+
+env('MAIL_FROM', $client_name . '+admin-noreply@agorakit.org');
+env('MAIL_FROM_NAME', $client_name);
+env('MAIL_NOREPLY', 'noreply@agorakit.org');
+
+env('INBOX_DRIVER', 'imap');
+env('INBOX_HOST', 'imap-agorakit.alwaysdata.net');
+env('INBOX_USERNAME', $client_name . '@agorakit.org');
+env('INBOX_PASSWORD', $inbox_password);
+env('INBOX_PREFFIX', $client_name . '+');
+env('INBOX_SUFFIX', '@agorakit.org');
+
+
+/********** generate key */
+
+info($ssh->exec('cd www/agorakit/' . $client_name . '; php artisan key:generate --force'));
 
 
 
-/**************** set correct config in .env ****************/
-
-/*** add key ***/
 
 /**************** migrate ***************************/
 
+info($ssh->exec('cd www/agorakit/' . $client_name . '; php artisan migrate --force'));
 
 
 /**************** setup cron jobs ******************/
+
+
+
