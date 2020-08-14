@@ -105,7 +105,7 @@ function generatePassword($length = 8)
 
 
 $db_password = generatePassword(16);
-$db_username = substr('agorakit_' . $client_name, 0, 15);
+$db_username = substr('agorakit_' . $client_name, 0, 16);
 
 
 $options = [
@@ -222,7 +222,8 @@ env('CACHE_DRIVER', 'file');
 env('SESSION_DRIVER', 'file');
 env('QUEUE_DRIVER', 'sync');
 
-env('MAIL_DRIVER', 'smtp-agorakit.alwaysdata.net');
+env('MAIL_DRIVER', 'smtp');
+env('MAIL_HOST', 'smtp-agorakit.alwaysdata.net');
 env('MAIL_PORT', '25');
 
 env('MAIL_USERNAME', 'null');
