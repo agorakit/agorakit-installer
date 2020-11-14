@@ -211,6 +211,7 @@ env('APP_ENV', 'production');
 env('APP_KEY', 'SomeRandomString');
 env('APP_DEBUG', 'false');
 env('APP_NAME', $client_name);
+env('APP_URL', 'https://' . $client_name . '.agorakit.org');
 env('APP_LOG', 'daily');
 
 env('APP_DEFAULT_LOCALE', 'en');
