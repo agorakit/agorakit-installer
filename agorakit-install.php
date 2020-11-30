@@ -33,6 +33,28 @@ $url = $client_name . '.agorakit.org';
 info('Will be available on ' . $url);
 
 
+
+/************** clone repository & composer install first just in case it fails ***********/
+
+info('Cloning site');
+
+use phpseclib\Net\SSH2;
+
+$ssh = new SSH2('ssh-agorakit.alwaysdata.net');
+if (!$ssh->login($ssh_login, $ssh_password)) {
+    exit('Could not logged in');
+}
+
+$ssh->setTimeout(1200);
+
+info ( $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name));
+info ($ssh->getExitStatus());
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install --optimize-autoloader --no-dev'));
+info ($ssh->getExitStatus());
+
+
+
+
 use GuzzleHttp\Client;
 
 $client = new Client([
@@ -177,21 +199,7 @@ if ($response->getStatusCode() > 299) {
 
 
 
-/************** clone repository ***********/
 
-info('Cloning site');
-
-use phpseclib\Net\SSH2;
-
-$ssh = new SSH2('ssh-agorakit.alwaysdata.net');
-if (!$ssh->login($ssh_login, $ssh_password)) {
-    exit('Could not logged in');
-}
-
-$ssh->setTimeout(240);
-
-info ( $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name));
-info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install --optimize-autoloader --no-dev'));
 
 
 /************* Handle .env file */
