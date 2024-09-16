@@ -49,7 +49,7 @@ $ssh->setTimeout(1200);
 
 info ( $ssh->exec('cd www/agorakit; git clone https://github.com/agorakit/agorakit ' . $client_name));
 info ($ssh->getExitStatus());
-info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer install --optimize-autoloader --no-dev'));
+info ( $ssh->exec('cd www/agorakit/' . $client_name . '; composer2 install --optimize-autoloader --no-dev'));
 info ($ssh->getExitStatus());
 
 
